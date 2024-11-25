@@ -133,15 +133,6 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    CefRefPtr<SimpleHandler> _handler(new SimpleHandler(false));
    g_handler = _handler;
    CefWindowInfo window_info;
-   RECT rect = { 0, 0, 500, 500 };
-   int w = rect.right - rect.left;
-   int h = rect.bottom - rect.top;
-   w = std::abs(w);
-   h = std::abs(h);
-   rect.left = 0;
-   rect.right = w;
-   rect.top = 0;
-   rect.bottom = h;
    window_info.SetAsPopup(nullptr, "Win32CEF");
    //window_info.SetAsWindowless(nullptr);
    CefBrowserSettings browser_settings;

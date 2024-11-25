@@ -2,3 +2,6 @@
 /Win32Cef/x64/Debug
 /Debug/Win32Cef.exe
 /Debug/Win32Cef.pdb
+/.vs
+/libcef_dll/libcef_dll_wrapper.dir
+/libcef_dll/libcef_dll_wrapper.vcxproj.user

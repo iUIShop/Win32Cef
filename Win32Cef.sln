@@ -5,6 +5,8 @@ VisualStudioVersion = 17.10.35027.167
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Win32Cef", "Win32Cef\Win32Cef.vcxproj", "{ADEA4AF4-56C5-4781-A7E7-B2498DC88E2D}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libcef_dll_wrapper", "libcef_dll\libcef_dll_wrapper.vcxproj", "{905640F3-40D8-3CE3-A53E-2DE728FDA12F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -21,6 +23,14 @@ Global
 		{ADEA4AF4-56C5-4781-A7E7-B2498DC88E2D}.Release|x64.Build.0 = Release|x64
 		{ADEA4AF4-56C5-4781-A7E7-B2498DC88E2D}.Release|x86.ActiveCfg = Release|Win32
 		{ADEA4AF4-56C5-4781-A7E7-B2498DC88E2D}.Release|x86.Build.0 = Release|Win32
+		{905640F3-40D8-3CE3-A53E-2DE728FDA12F}.Debug|x64.ActiveCfg = Debug|x64
+		{905640F3-40D8-3CE3-A53E-2DE728FDA12F}.Debug|x64.Build.0 = Debug|x64
+		{905640F3-40D8-3CE3-A53E-2DE728FDA12F}.Debug|x86.ActiveCfg = Debug|x64
+		{905640F3-40D8-3CE3-A53E-2DE728FDA12F}.Debug|x86.Build.0 = Debug|x64
+		{905640F3-40D8-3CE3-A53E-2DE728FDA12F}.Release|x64.ActiveCfg = Release|x64
+		{905640F3-40D8-3CE3-A53E-2DE728FDA12F}.Release|x64.Build.0 = Release|x64
+		{905640F3-40D8-3CE3-A53E-2DE728FDA12F}.Release|x86.ActiveCfg = Release|x64
+		{905640F3-40D8-3CE3-A53E-2DE728FDA12F}.Release|x86.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
