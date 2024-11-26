@@ -136,6 +136,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="framework.h" />
+    <ClInclude Include="OsrRenderHandler.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="simple_app.h" />
     <ClInclude Include="simple_handler.h" />
@@ -143,6 +144,7 @@
     <ClInclude Include="Win32Cef.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="OsrRenderHandler.cpp" />
     <ClCompile Include="simple_app.cc" />
     <ClCompile Include="simple_handler.cc" />
     <ClCompile Include="simple_handler_win.cc" />
@@ -154,6 +156,11 @@
   <ItemGroup>
     <Image Include="small.ico" />
     <Image Include="Win32Cef.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\libcef_dll\libcef_dll_wrapper.vcxproj">
+      <Project>{905640f3-40d8-3ce3-a53e-2de728fda12f}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

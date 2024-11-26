@@ -36,6 +36,9 @@
     <ClInclude Include="simple_handler.h">
       <Filter>Cef</Filter>
     </ClInclude>
+    <ClInclude Include="OsrRenderHandler.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Win32Cef.cpp">
@@ -49,6 +52,9 @@
     </ClCompile>
     <ClCompile Include="simple_handler_win.cc">
       <Filter>Cef</Filter>
+    </ClCompile>
+    <ClCompile Include="OsrRenderHandler.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
