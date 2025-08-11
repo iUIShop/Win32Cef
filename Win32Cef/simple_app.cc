@@ -187,3 +187,10 @@ CefRefPtr<CefClient> SimpleApp::GetDefaultClient() {
 	// Called when a new browser window is created via Chrome style UI.
 	return SimpleHandler::GetInstance();
 }
+
+void SimpleApp::OnBeforeCommandLineProcessing(
+	const CefString& process_type,
+	CefRefPtr<CefCommandLine> command_line)
+{
+	//command_line->AppendSwitch("--single-process");
+}

@@ -9,6 +9,7 @@
 #include "simple_handler.h"
 
 #define MAX_LOADSTRING 100
+HWND g_hRootWnd = nullptr;
 
 // Global Variables:
 HINSTANCE hInst;                                // current instance
@@ -90,26 +91,21 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 	return RegisterClassExW(&wcex);
 }
 
-//
-//   FUNCTION: InitInstance(HINSTANCE, int)
-//
-//   PURPOSE: Saves instance handle and creates main window
-//
-//   COMMENTS:
-//
-//        In this function, we save the instance handle in a global variable and
-//        create and display the main program window.
-//
+// CEF默认是多进程的，所以，会创建多份进程，这个InitInstance会调用多次。
 BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
 	hInst = hInstance; // Store instance handle in our global variable
 
-	BOOL bCreateRootWnd = FALSE;
+	BOOL bCreateRootWnd = TRUE;
 	HWND hWnd = nullptr;
+
+	OutputDebugStringW(L"[lsw] create hwnd");
+
 	if (bCreateRootWnd)
 	{
-		hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
-			CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, nullptr, nullptr, hInstance, nullptr);
+		hWnd = CreateWindowExW(0, szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
+			1000, 300, 1000, 800, nullptr, nullptr, hInstance, nullptr);
+
 
 		if (!hWnd)
 		{
@@ -118,6 +114,8 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
 		ShowWindow(hWnd, nCmdShow);
 		UpdateWindow(hWnd);
+
+		g_hRootWnd = hWnd;
 	}
 
 	void* sandbox_info = NULL;
@@ -131,6 +129,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	//关闭沙箱，浏览器初始化
 	CefSettings settings;
 	settings.no_sandbox = true;
+	//settings.single_process = true;
 	settings.multi_threaded_message_loop = true;
 	CefRefPtr<SimpleApp> app(new SimpleApp);
 	CefInitialize(main_args, settings, app.get(), sandbox_info);
@@ -139,18 +138,20 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	g_handler = _handler;
 	CefWindowInfo window_info;
 
-	if (bCreateRootWnd)
+	//if (bCreateRootWnd)
+	//{
+	//	CefRect rc = { 30, 30, 200, 200 };
+	//	window_info.SetAsChild(hWnd, rc);
+	//}
+	//else
 	{
+		//window_info.SetAsPopup(nullptr, "Win32CEF");
 		CefRect rc = { 30, 30, 200, 200 };
-		window_info.SetAsChild(hWnd, rc);
-	}
-	else
-	{
-		window_info.SetAsPopup(nullptr, "Win32CEF");
-		window_info.SetAsWindowless(nullptr);
+		//window_info.SetAsChild(hWnd, rc);
+		window_info.SetAsWindowless(g_hRootWnd);
 	}
 	CefBrowserSettings browser_settings;
-	CefBrowserHost::CreateBrowser(window_info, g_handler.get(), "http://www.baidu.com", browser_settings, nullptr, nullptr);
+	CefBrowserHost::CreateBrowser(window_info, g_handler.get(), R"(file:///D:/2.mp4)", browser_settings, nullptr, nullptr);
 
 	return TRUE;
 }

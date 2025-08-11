@@ -2,6 +2,7 @@
 
 #include <include\cef_render_handler.h>
 
+extern HWND g_hRootWnd;
 
 class COsrRenderHandler : public CefRenderHandler
 {

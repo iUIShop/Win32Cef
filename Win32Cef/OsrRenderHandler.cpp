@@ -68,6 +68,6 @@ void COsrRenderHandler::OnPaint(CefRefPtr<CefBrowser> browser,
     int height)
 {
 	HWND h = browser->GetHost()->GetWindowHandle();
-	RenderBitmapWithAlpha(h, buffer, width, height);
+	RenderBitmapWithAlpha(g_hRootWnd, buffer, width, height);
     int m = 0;
 }
