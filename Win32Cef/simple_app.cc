@@ -193,7 +193,7 @@ void SimpleApp::OnBeforeCommandLineProcessing(
 	CefRefPtr<CefCommandLine> command_line)
 {
 	// 下面的代码，可使控制只生成一个Win32Cef.exe进程，否则在任务管理器中会看到多个Win32Cef.exe进程。
-	if (process_type.empty() && 0)
+	if (process_type.empty())
 	{
 		command_line->AppendSwitch("--disable-pinch");
 		command_line->AppendSwitch("disable-gpu");
