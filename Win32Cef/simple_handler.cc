@@ -98,19 +98,19 @@ void SimpleHandler::OnBeforeClose(CefRefPtr<CefBrowser> browser)
 {
 	CEF_REQUIRE_UI_THREAD();
 
-	// 1. 调用父类实现
-	CefLifeSpanHandler::OnBeforeClose(browser);
-
 	// Remove from the list of existing browsers.
 	BrowserList::iterator bit = browser_list_.begin();
-	for (; bit != browser_list_.end(); ++bit) {
-		if ((*bit)->IsSame(browser)) {
+	for (; bit != browser_list_.end(); ++bit)
+	{
+		if ((*bit)->IsSame(browser))
+		{
 			browser_list_.erase(bit);
 			break;
 		}
 	}
 
-	if (browser_list_.empty()) {
+	if (browser_list_.empty())
+	{
 		// All browser windows have closed. Quit the application message loop.
 		PostQuitMessage(0);
 	}

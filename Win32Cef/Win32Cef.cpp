@@ -234,23 +234,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		EndPaint(hWnd, &ps);
 	}
 	break;
-	case WM_DESTROY:
-		// 在这里处理关闭逻辑
-		if (g_handler && g_handler->GetBrowser())
-		{
-			// 1. 请求关闭浏览器
-			// 这会触发 CEF 的 OnBeforeClose 回调
-			g_handler->GetBrowser()->GetHost()->CloseBrowser(true);
 
-			// 2. 返回，不要在这里调用 PostQuitMessage
-			// 让 CEF 在 OnBeforeClose 回调中自行调用 PostQuitMessage
-			return 0;
-		}
-		else
-		{
-			// 如果没有浏览器了，正常退出
-			PostQuitMessage(0);
-		}		break;
+	// PostQuitMessage(0)可以由WM_DESTROY调用，也可以由SimpleHandler::OnBeforeClose调用，
+	// 后者机会更晚，后者在所有browser都关闭时调用。所以，我们选择在SimpleHandler::OnBeforeClose调用PostQuitMessage(0)，
+	// 而注释掉WM_DESTROY中的PostQuitMessage(0)调用。
+	// 另注：因为现在settings.multi_threaded_message_loop == false;
+	// 所以不能调用CefQuitMessageLoop()，必须调用PostQuitMessage(0)来退出消息循环。
+	//case WM_DESTROY:
+	//	PostQuitMessage(0);
+	//	break;
 
 	case WM_SIZE:
 	{
