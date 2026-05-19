@@ -68,7 +68,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	// 关闭沙箱，浏览器初始化，因为接下来要把进程改为单进程模式，它与沙箱不兼容。
 	CefSettings settings;
 	settings.no_sandbox = true;
-	settings.multi_threaded_message_loop = true;
 
 	// Cef初始化
 	CefRefPtr<SimpleApp> app(new SimpleApp);
@@ -93,16 +92,51 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_WIN32CEF));
 
 	MSG msg;
+	bool running = true;
 
-	// Main message loop:
-	while (GetMessage(&msg, nullptr, 0, 0))
+	while (running)
 	{
-		if (!TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
+		// 1. 先处理所有待处理的 Win32 消息（非阻塞）
+		while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
 		{
-			TranslateMessage(&msg);
-			DispatchMessage(&msg);
+			if (msg.message == WM_QUIT)
+			{
+				running = false;
+				break;
+			}
+			if (!TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
+			{
+				TranslateMessage(&msg);
+				DispatchMessage(&msg);
+			}
 		}
+
+		if (!running)
+		{
+			break;
+		}
+
+		// 2. 让 CEF 处理任务（非阻塞）
+		CefDoMessageLoopWork();
+
+		// 3. 短暂休眠，避免 CPU 占满（关键！）
+		// 如果没有消息也没有 CEF 任务，让出 CPU
+		Sleep(10);  // 10ms 通常足够，可根据需要调整
 	}
+
+	//MSG msg;
+
+	//// Main message loop:
+	//while (GetMessage(&msg, nullptr, 0, 0))
+	//{
+	//	CefDoMessageLoopWork();
+
+	//	if (!TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
+	//	{
+	//		TranslateMessage(&msg);
+	//		DispatchMessage(&msg);
+	//	}
+	//}
 
 	CefShutdown();
 
@@ -201,8 +235,22 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	}
 	break;
 	case WM_DESTROY:
-		PostQuitMessage(0);
-		break;
+		// 在这里处理关闭逻辑
+		if (g_handler && g_handler->GetBrowser())
+		{
+			// 1. 请求关闭浏览器
+			// 这会触发 CEF 的 OnBeforeClose 回调
+			g_handler->GetBrowser()->GetHost()->CloseBrowser(true);
+
+			// 2. 返回，不要在这里调用 PostQuitMessage
+			// 让 CEF 在 OnBeforeClose 回调中自行调用 PostQuitMessage
+			return 0;
+		}
+		else
+		{
+			// 如果没有浏览器了，正常退出
+			PostQuitMessage(0);
+		}		break;
 
 	case WM_SIZE:
 	{
