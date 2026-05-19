@@ -10,6 +10,13 @@
 
 #include "include/cef_browser.h"
 
+void SimpleHandler::SetBrowserSize(int browser_id, int width, int height)
+{
+	m_browser_sizes[browser_id] = {width, height};
+
+	m_spOsrRenderHandler->SetBrowserSize(width, height);
+}
+
 void SimpleHandler::PlatformTitleChange(CefRefPtr<CefBrowser> browser,
                                         const CefString& title) {
   CefWindowHandle hwnd = browser->GetHost()->GetWindowHandle();

@@ -7,6 +7,13 @@ extern HWND g_hRootWnd;
 class COsrRenderHandler : public CefRenderHandler
 {
 public:
+	void SetBrowserSize(int width, int height)
+	{
+		m_szBrowser.cx = width;
+		m_szBrowser.cy = height;
+	}
+
+public:
 	///
 /// Called to retrieve the view rectangle in screen DIP coordinates. This
 /// method must always provide a non-empty rectangle.
@@ -36,4 +43,6 @@ public:
 protected:
     // Include the default reference counting implementation.
     IMPLEMENT_REFCOUNTING(COsrRenderHandler);
+
+	SIZE m_szBrowser = {300, 300};
 };

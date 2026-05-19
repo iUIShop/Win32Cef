@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>Transparent CEF Page</title>
+    <style>
+        /* 核心：将根元素和body的背景设为完全透明 */
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: transparent !important; /* 强制透明，覆盖浏览器默认白色 */
+            overflow: hidden; /* 防止出现滚动条破坏视觉效果 */
+        }
+
+        /* 文字样式（可根据你的UI需求随意调整） */
+        .content {
+            font-family: "Microsoft YaHei", sans-serif;
+            color: white; /* 建议用白色或深色文字，以便在你的毛玻璃背景上清晰显示 */
+            font-size: 24px;
+            padding: 50px;
+            /* 增加一点文字阴影，防止背景过亮时文字看不清 */
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5); 
+        }
+    </style>
+</head>
+<body>
+    <!-- 你的内容 -->
+    <div class="content">
+        This is a web page
+    </div>
+</body>
+</html>

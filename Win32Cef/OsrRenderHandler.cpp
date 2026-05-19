@@ -4,10 +4,10 @@
 
 void COsrRenderHandler::GetViewRect(CefRefPtr<CefBrowser> browser, CefRect& rect)
 {
-    rect.x = 50;
-    rect.y = 50;
-    rect.width = 300;
-    rect.height = 300;
+    rect.x = 0;
+    rect.y = 0;
+    rect.width = m_szBrowser.cx;
+    rect.height = m_szBrowser.cy;
 }
 
 bool g_bPopupOsr = false;

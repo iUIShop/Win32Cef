@@ -8,6 +8,12 @@
 #include "simple_app.h"
 #include "simple_handler.h"
 #include <atltypes.h>
+#include <dwmapi.h>
+#include <shlwapi.h>
+#include <PathCch.h>
+
+#pragma comment(lib, "dwmapi.lib")
+#pragma comment(lib, "Pathcch.lib")
 
 
 #define MAX_LOADSTRING 100
@@ -18,6 +24,7 @@ HINSTANCE hInst;                                // current instance
 WCHAR szTitle[MAX_LOADSTRING];                  // The title bar text
 WCHAR szWindowClass[MAX_LOADSTRING];            // the main window class name
 CefRefPtr<SimpleHandler> g_handler;
+BOOL g_bOsrMode = TRUE;
 
 // Forward declarations of functions included in this code module:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
@@ -79,14 +86,28 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 	CefWindowInfo window_info;
 
-	CRect rcClient;
-	GetClientRect(g_hRootWnd, rcClient);
-	CefRect rc = {0, 0, rcClient.Width(), rcClient.Height()};
-	window_info.SetAsChild(g_hRootWnd, rc);
+	if (0)
+	{
+		// 常规窗口模式
+		CRect rcClient;
+		GetClientRect(g_hRootWnd, rcClient);
+		CefRect rc = {0, 0, rcClient.Width(), rcClient.Height()};
+		window_info.SetAsChild(g_hRootWnd, rc);
+	}
+	else
+	{
+		// 开启离屏渲染模式
+		window_info.SetAsPopup(nullptr, "Win32CEF");
+		window_info.SetAsWindowless(nullptr);
+	}
 
-	// 创建Browser窗口，加载百度首页。
+	// 创建Browser窗口，加载网页。
+	WCHAR szPath[MAX_PATH] = {0};
+	GetModuleFileNameW(nullptr, szPath, MAX_PATH);
+	PathRemoveFileSpecW(szPath);
+	PathCchAppend(szPath, MAX_PATH, L"..\\Win32Cef.html");
 	CefBrowserSettings browser_settings;
-	CefBrowserHost::CreateBrowser(window_info, g_handler.get(), R"(https://www.baidu.com)", browser_settings, nullptr, nullptr);
+	CefBrowserHost::CreateBrowser(window_info, g_handler.get(), szPath, browser_settings, nullptr, nullptr);
 
 	// 消息循环
 	HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_WIN32CEF));
@@ -163,8 +184,8 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 	wcex.hInstance = hInstance;
 	wcex.hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_WIN32CEF));
 	wcex.hCursor = LoadCursor(nullptr, IDC_ARROW);
-	wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
-	wcex.lpszMenuName = MAKEINTRESOURCEW(IDC_WIN32CEF);
+	wcex.hbrBackground = nullptr;
+	wcex.lpszMenuName = nullptr;
 	wcex.lpszClassName = szWindowClass;
 	wcex.hIconSm = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
 
@@ -186,6 +207,23 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	{
 		return FALSE;
 	}
+
+	// 必须扩展客户区到整个窗口，DWM 才会绘制背景
+	MARGINS margins = {-1, -1, -1, -1};  // 全窗口扩展
+	DwmExtendFrameIntoClientArea(hWnd, &margins);
+
+	// 指定窗口的系统绘制背景材质DWMWA_SYSTEMBACKDROP_TYPE，
+	DWORD backdrop = DWMSBT_TRANSIENTWINDOW; // 亚克力材质（毛玻璃），如果是DWMSBT_MAINWINDOW，则是与桌面壁纸混合（云母材质）。
+	::DwmSetWindowAttribute(hWnd, DWMWA_SYSTEMBACKDROP_TYPE, &backdrop, sizeof(backdrop));
+
+	// 设置暗色模式，如果不需要暗色模式，就注释掉下面两行。
+	// 这会让标题栏也一起变暗。
+	BOOL dark = TRUE;
+	::DwmSetWindowAttribute(hWnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &dark, sizeof(dark));
+
+	// 设置边框为红色
+	COLORREF crBorder = RGB(255, 0, 0);
+	::DwmSetWindowAttribute(hWnd, DWMWA_BORDER_COLOR, &crBorder, sizeof(crBorder));
 
 	ShowWindow(hWnd, nCmdShow);
 	UpdateWindow(hWnd);
@@ -230,7 +268,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	{
 		PAINTSTRUCT ps;
 		HDC hdc = BeginPaint(hWnd, &ps);
-		// TODO: Add any drawing code that uses hdc here...
+
+		// 重要：填充半透明黑色，让 Acrylic 背景可见
+		HBRUSH hBrush = CreateSolidBrush(RGB(32, 32, 32));
+		FillRect(hdc, &ps.rcPaint, hBrush);
+		DeleteObject(hBrush);
+
 		EndPaint(hWnd, &ps);
 	}
 	break;
@@ -248,13 +291,25 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	{
 		if (g_handler && g_handler->GetBrowser())
 		{
-			HWND hBrowserWnd = g_handler->GetBrowser()->GetHost()->GetWindowHandle();
-			if (hBrowserWnd)
+			if (!g_bOsrMode)
 			{
-				RECT rc;
-				GetClientRect(hWnd, &rc);
-				SetWindowPos(hBrowserWnd, nullptr, 0, 0, rc.right, rc.bottom,
-					SWP_NOZORDER | SWP_SHOWWINDOW);
+				HWND hBrowserWnd = g_handler->GetBrowser()->GetHost()->GetWindowHandle();
+				if (hBrowserWnd)
+				{
+					RECT rc;
+					GetClientRect(hWnd, &rc);
+					SetWindowPos(hBrowserWnd, nullptr, 0, 0, rc.right, rc.bottom,
+						SWP_NOZORDER | SWP_SHOWWINDOW);
+				}
+			}
+			else
+			{
+				g_handler->SetBrowserSize(g_handler->GetBrowser()->GetIdentifier(), LOWORD(lParam), HIWORD(lParam));
+				CefRefPtr<CefBrowserHost> host = g_handler->GetBrowser()->GetHost();
+				if (host)
+				{
+					host->WasResized();
+				}
 			}
 		}
 		break;

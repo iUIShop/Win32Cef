@@ -1,4 +1,4 @@
-// Copyright (c) 2013 The Chromium Embedded Framework Authors. All rights
+﻿// Copyright (c) 2013 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 
@@ -59,6 +59,8 @@ public:
 		return m_browser;
 	}
 
+	void SetBrowserSize(int browser_id, int width, int height);
+
 private:
 	// Platform-specific implementation.
 	void PlatformTitleChange(CefRefPtr<CefBrowser> browser,
@@ -81,6 +83,8 @@ private:
 
 protected:
 	CefRefPtr<COsrRenderHandler> m_spOsrRenderHandler;
+	// 使用 map 存储每个 browser_id 对应的宽高
+	std::map<int, SIZE> m_browser_sizes;
 };
 
 #endif  // CEF_TESTS_CEFSIMPLE_SIMPLE_HANDLER_H_
