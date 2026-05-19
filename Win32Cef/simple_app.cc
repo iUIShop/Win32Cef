@@ -1,4 +1,4 @@
-// Copyright (c) 2013 The Chromium Embedded Framework Authors. All rights
+﻿// Copyright (c) 2013 The Chromium Embedded Framework Authors. All rights
 // reserved. Use of this source code is governed by a BSD-style license that
 // can be found in the LICENSE file.
 
@@ -192,5 +192,29 @@ void SimpleApp::OnBeforeCommandLineProcessing(
 	const CefString& process_type,
 	CefRefPtr<CefCommandLine> command_line)
 {
-	//command_line->AppendSwitch("--single-process");
+	// 下面的代码，可使控制只生成一个Win32Cef.exe进程，否则在任务管理器中会看到多个Win32Cef.exe进程。
+	if (process_type.empty() && 0)
+	{
+		command_line->AppendSwitch("--disable-pinch");
+		command_line->AppendSwitch("disable-gpu");
+		command_line->AppendSwitch("disable-gpu-compositing");
+
+		// Don't create a "GPUCache" directory when cache-path is unspecified.
+		command_line->AppendSwitch("disable-gpu-shader-disk-cache");
+
+		// Disable popup blocking for the chrome runtime.
+		command_line->AppendSwitch("disable-popup-blocking");
+		command_line->AppendSwitch("disable-plugins");
+		command_line->AppendSwitch("disable-extensions");
+		command_line->AppendSwitch("--no-proxy-server");
+		command_line->AppendSwitch("--single-process");
+		command_line->AppendSwitch("--disable-renderer-accessibility");
+
+		command_line->AppendSwitch("disable-background-networking");
+		command_line->AppendSwitch("disable-component-update");
+		command_line->AppendSwitch("disable-stack-profiler");
+		command_line->AppendSwitch("do-not-de-elevate");
+		command_line->AppendSwitchWithValue("top-chrome-touch-ui", "disabled");
+		command_line->AppendSwitchWithValue("touch-events", "enabled");
+	}
 }

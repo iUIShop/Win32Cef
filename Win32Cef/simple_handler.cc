@@ -74,6 +74,8 @@ void SimpleHandler::OnAfterCreated(CefRefPtr<CefBrowser> browser)
 
 	// Add to the list of existing browsers.
 	browser_list_.push_back(browser);
+
+	m_browser = browser;
 }
 
 bool SimpleHandler::DoClose(CefRefPtr<CefBrowser> browser) {

@@ -54,6 +54,11 @@ public:
 
 	bool IsClosing() const { return is_closing_; }
 
+	CefRefPtr<CefBrowser> GetBrowser()
+	{
+		return m_browser;
+	}
+
 private:
 	// Platform-specific implementation.
 	void PlatformTitleChange(CefRefPtr<CefBrowser> browser,
@@ -68,6 +73,8 @@ private:
 	BrowserList browser_list_;
 
 	bool is_closing_ = false;
+
+	CefRefPtr<CefBrowser> m_browser;
 
 	// Include the default reference counting implementation.
 	IMPLEMENT_REFCOUNTING(SimpleHandler);

@@ -1,4 +1,4 @@
-// Win32Cef.cpp : Defines the entry point for the application.
+﻿// Win32Cef.cpp : Defines the entry point for the application.
 //
 
 #include "framework.h"
@@ -7,6 +7,8 @@
 #include <include/cef_app.h>
 #include "simple_app.h"
 #include "simple_handler.h"
+#include <atltypes.h>
+
 
 #define MAX_LOADSTRING 100
 HWND g_hRootWnd = nullptr;
@@ -31,19 +33,63 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	UNREFERENCED_PARAMETER(hPrevInstance);
 	UNREFERENCED_PARAMETER(lpCmdLine);
 
-	// TODO: Place code here.
+	OutputDebugStringW(L"[lsw] Win32Cef start.");
+
+	// ========== 第 1 步：CEF 进程判断（必须最先执行）==========
+	void *sandbox_info = NULL;
+	CefMainArgs main_args(hInstance);
+
+	// CEF默认是多进程，wWinMain会执行多次。通过CefExecuteProcess来过滤。
+	// 如果是子进程（Renderer/GPU等），CefExecuteProcess 会阻塞并接管，
+	// 返回 >= 0 表示当前进程使命已完成，应直接退出
+	int exit_code = CefExecuteProcess(main_args, nullptr, sandbox_info);
+	if (exit_code >= 0)
+	{
+		OutputDebugStringW(L"[lsw] 走到这里，说明是Win32Cef子进程，且任务已完成，直接退出。");
+
+		return exit_code;
+	}
+
+	OutputDebugStringW(L"[lsw] 只有Win32Cef主进程，才会执行到这里。");
+
+	// ========== 第 2 步：以下只有 Browser 主进程才会执行 ==========
 
 	// Initialize global strings
 	LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
 	LoadStringW(hInstance, IDC_WIN32CEF, szWindowClass, MAX_LOADSTRING);
 	MyRegisterClass(hInstance);
 
-	// Perform application initialization:
+	// InitInstance内部创建HWND。
 	if (!InitInstance(hInstance, nCmdShow))
 	{
 		return FALSE;
 	}
 
+	// 关闭沙箱，浏览器初始化，因为接下来要把进程改为单进程模式，它与沙箱不兼容。
+	CefSettings settings;
+	settings.no_sandbox = true;
+	settings.multi_threaded_message_loop = true;
+
+	// Cef初始化
+	CefRefPtr<SimpleApp> app(new SimpleApp);
+	CefInitialize(main_args, settings, app.get(), sandbox_info);
+
+	// 网页加载时的处理器。
+	CefRefPtr<SimpleHandler> _handler(new SimpleHandler(false));
+	g_handler = _handler;
+
+	CefWindowInfo window_info;
+
+	CRect rcClient;
+	GetClientRect(g_hRootWnd, rcClient);
+	CefRect rc = {0, 0, rcClient.Width(), rcClient.Height()};
+	window_info.SetAsChild(g_hRootWnd, rc);
+
+	// 创建Browser窗口，加载百度首页。
+	CefBrowserSettings browser_settings;
+	CefBrowserHost::CreateBrowser(window_info, g_handler.get(), R"(https://www.baidu.com)", browser_settings, nullptr, nullptr);
+
+	// 消息循环
 	HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_WIN32CEF));
 
 	MSG msg;
@@ -91,67 +137,26 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 	return RegisterClassExW(&wcex);
 }
 
-// CEFĬ���Ƕ���̵ģ����ԣ��ᴴ����ݽ��̣����InitInstance����ö�Ρ�
 BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
 	hInst = hInstance; // Store instance handle in our global variable
 
-	BOOL bCreateRootWnd = TRUE;
 	HWND hWnd = nullptr;
 
 	OutputDebugStringW(L"[lsw] create hwnd");
 
-	if (bCreateRootWnd)
+	hWnd = CreateWindowExW(0, szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
+		1000, 300, 1000, 800, nullptr, nullptr, hInstance, nullptr);
+
+	if (!hWnd)
 	{
-		hWnd = CreateWindowExW(0, szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
-			1000, 300, 1000, 800, nullptr, nullptr, hInstance, nullptr);
-
-
-		if (!hWnd)
-		{
-			return FALSE;
-		}
-
-		ShowWindow(hWnd, nCmdShow);
-		UpdateWindow(hWnd);
-
-		g_hRootWnd = hWnd;
+		return FALSE;
 	}
 
-	void* sandbox_info = NULL;
-	CefMainArgs main_args(hInstance);
-	int exit_code = CefExecuteProcess(main_args, nullptr, sandbox_info);
-	if (exit_code >= 0)
-	{
-		return exit_code;
-	}
+	ShowWindow(hWnd, nCmdShow);
+	UpdateWindow(hWnd);
 
-	//�ر�ɳ�䣬�������ʼ��
-	CefSettings settings;
-	settings.no_sandbox = true;
-	//settings.single_process = true;
-	settings.multi_threaded_message_loop = true;
-	CefRefPtr<SimpleApp> app(new SimpleApp);
-	CefInitialize(main_args, settings, app.get(), sandbox_info);
-
-	CefRefPtr<SimpleHandler> _handler(new SimpleHandler(false));
-	g_handler = _handler;
-	CefWindowInfo window_info;
-
-	//if (bCreateRootWnd)
-	//{
-	//	CefRect rc = { 30, 30, 200, 200 };
-	//	window_info.SetAsChild(hWnd, rc);
-	//}
-	//else
-	{
-		//window_info.SetAsPopup(nullptr, "Win32CEF");
-		CefRect rc = { 30, 30, 200, 200 };
-		//window_info.SetAsChild(hWnd, rc);
-		window_info.SetAsWindowless(g_hRootWnd);
-	}
-	CefBrowserSettings browser_settings;
-	CefBrowserHost::CreateBrowser(window_info, g_handler.get(), R"(file:///D:/2.mp4)", browser_settings, nullptr, nullptr);
+	g_hRootWnd = hWnd;
 
 	return TRUE;
 }
@@ -198,6 +203,23 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_DESTROY:
 		PostQuitMessage(0);
 		break;
+
+	case WM_SIZE:
+	{
+		if (g_handler && g_handler->GetBrowser())
+		{
+			HWND hBrowserWnd = g_handler->GetBrowser()->GetHost()->GetWindowHandle();
+			if (hBrowserWnd)
+			{
+				RECT rc;
+				GetClientRect(hWnd, &rc);
+				SetWindowPos(hBrowserWnd, nullptr, 0, 0, rc.right, rc.bottom,
+					SWP_NOZORDER | SWP_SHOWWINDOW);
+			}
+		}
+		break;
+	}
+
 	default:
 		return DefWindowProc(hWnd, message, wParam, lParam);
 	}

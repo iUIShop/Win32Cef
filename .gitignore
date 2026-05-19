@@ -5,3 +5,4 @@
 /.vs
 /libcef_dll/libcef_dll_wrapper.dir
 /libcef_dll/libcef_dll_wrapper.vcxproj.user
+/Debug/debug.log
