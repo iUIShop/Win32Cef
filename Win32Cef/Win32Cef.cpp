@@ -17,20 +17,75 @@
 
 
 #define MAX_LOADSTRING 100
-HWND g_hRootWnd = nullptr;
+
 
 // Global Variables:
+HWND g_hRootWnd = nullptr;
+BOOL g_bOsrMode = FALSE;
+
+
 HINSTANCE hInst;                                // current instance
 WCHAR szTitle[MAX_LOADSTRING];                  // The title bar text
 WCHAR szWindowClass[MAX_LOADSTRING];            // the main window class name
 CefRefPtr<SimpleHandler> g_handler;
-BOOL g_bOsrMode = TRUE;
 
 // Forward declarations of functions included in this code module:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
+
+
+int SetHWNDAcrylic(HWND hWnd)
+{
+	// 必须扩展客户区到整个窗口，DWM 才会绘制背景
+	MARGINS margins = {-1, -1, -1, -1};  // 全窗口扩展
+	DwmExtendFrameIntoClientArea(hWnd, &margins);
+
+	// 指定窗口的系统绘制背景材质DWMWA_SYSTEMBACKDROP_TYPE，
+	DWORD backdrop = DWMSBT_TRANSIENTWINDOW; // 亚克力材质（毛玻璃），如果是DWMSBT_MAINWINDOW，则是与桌面壁纸混合（云母材质）。
+	::DwmSetWindowAttribute(hWnd, DWMWA_SYSTEMBACKDROP_TYPE, &backdrop, sizeof(backdrop));
+
+	// 设置暗色模式，如果不需要暗色模式，就注释掉下面两行。
+	// 这会让标题栏也一起变暗。
+	BOOL dark = TRUE;
+	::DwmSetWindowAttribute(hWnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &dark, sizeof(dark));
+
+	// 设置边框为红色
+	COLORREF crBorder = RGB(255, 0, 0);
+	::DwmSetWindowAttribute(hWnd, DWMWA_BORDER_COLOR, &crBorder, sizeof(crBorder));
+
+	return 0;
+}
+
+LRESULT CALLBACK Chrome_WidgetWin_1Subclass(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
+{
+	if (uIdSubclass == 5)
+	{
+		if (WM_ERASEBKGND == uMsg)
+		{
+			return TRUE;
+		}
+		else if (WM_PAINT == uMsg)
+		{
+			PAINTSTRUCT ps;
+			HDC hdc = BeginPaint(hWnd, &ps);
+
+			RECT rc;
+			GetClientRect(hWnd, &rc);
+			SetBkMode(hdc, TRANSPARENT);
+			SetTextColor(hdc, RGB(255, 255, 0));
+			DrawText(hdc, L"Child Window", -1, &rc,
+				DT_CENTER | DT_SINGLELINE);
+
+			EndPaint(hWnd, &ps);
+			return 0;
+		}
+	}
+
+	return DefSubclassProc(hWnd, uMsg, wParam, lParam);
+}
+
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	_In_opt_ HINSTANCE hPrevInstance,
@@ -66,7 +121,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	LoadStringW(hInstance, IDC_WIN32CEF, szWindowClass, MAX_LOADSTRING);
 	MyRegisterClass(hInstance);
 
-	// InitInstance内部创建HWND。
+	// InitInstance内部创建HWND。可选。因为CefBrowserHost::CreateBrowserSync创建browser的时候，也会创建窗口
+	// 那个窗口也可以作为父窗口。
 	if (!InitInstance(hInstance, nCmdShow))
 	{
 		return FALSE;
@@ -84,21 +140,23 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	CefRefPtr<SimpleHandler> _handler(new SimpleHandler(false));
 	g_handler = _handler;
 
-	CefWindowInfo window_info;
+	CRect rcClient;
+	GetClientRect(g_hRootWnd, rcClient);
 
-	if (0)
-	{
-		// 常规窗口模式
-		CRect rcClient;
-		GetClientRect(g_hRootWnd, rcClient);
-		CefRect rc = {0, 0, rcClient.Width(), rcClient.Height()};
-		window_info.SetAsChild(g_hRootWnd, rc);
-	}
-	else
+	CefWindowInfo window_info;
+	if (g_bOsrMode)
 	{
 		// 开启离屏渲染模式
 		window_info.SetAsPopup(nullptr, "Win32CEF");
-		window_info.SetAsWindowless(nullptr);
+		window_info.SetAsWindowless(g_hRootWnd);
+
+		g_handler->SetBrowserSize(0, rcClient.Width(), rcClient.Height());
+	}
+	else
+	{
+		// 常规窗口模式
+		CefRect rc = {0, 0, rcClient.Width(), rcClient.Height()};
+		window_info.SetAsChild(g_hRootWnd, rc);
 	}
 
 	// 创建Browser窗口，加载网页。
@@ -107,7 +165,15 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	PathRemoveFileSpecW(szPath);
 	PathCchAppend(szPath, MAX_PATH, L"..\\Win32Cef.html");
 	CefBrowserSettings browser_settings;
-	CefBrowserHost::CreateBrowser(window_info, g_handler.get(), szPath, browser_settings, nullptr, nullptr);
+
+	// Copilot说，browser_settings.background_color对窗口模式基本无效，主要用于OSR模式。
+	CefRefPtr<CefBrowser> pBrowser = CefBrowserHost::CreateBrowserSync(window_info, g_handler.get(), szPath, browser_settings, nullptr, nullptr);
+
+	if (!g_bOsrMode)
+	{
+		HWND hChrome_WidgetWin_1 = pBrowser->GetHost()->GetWindowHandle();
+		_ASSERT(nullptr != hChrome_WidgetWin_1);
+	}
 
 	// 消息循环
 	HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_WIN32CEF));
@@ -208,22 +274,8 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 		return FALSE;
 	}
 
-	// 必须扩展客户区到整个窗口，DWM 才会绘制背景
-	MARGINS margins = {-1, -1, -1, -1};  // 全窗口扩展
-	DwmExtendFrameIntoClientArea(hWnd, &margins);
-
-	// 指定窗口的系统绘制背景材质DWMWA_SYSTEMBACKDROP_TYPE，
-	DWORD backdrop = DWMSBT_TRANSIENTWINDOW; // 亚克力材质（毛玻璃），如果是DWMSBT_MAINWINDOW，则是与桌面壁纸混合（云母材质）。
-	::DwmSetWindowAttribute(hWnd, DWMWA_SYSTEMBACKDROP_TYPE, &backdrop, sizeof(backdrop));
-
-	// 设置暗色模式，如果不需要暗色模式，就注释掉下面两行。
-	// 这会让标题栏也一起变暗。
-	BOOL dark = TRUE;
-	::DwmSetWindowAttribute(hWnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &dark, sizeof(dark));
-
-	// 设置边框为红色
-	COLORREF crBorder = RGB(255, 0, 0);
-	::DwmSetWindowAttribute(hWnd, DWMWA_BORDER_COLOR, &crBorder, sizeof(crBorder));
+	// 设置窗口背景为亚克力毛玻璃效果（需要 Windows 11 22H2 或更高版本）
+	SetHWNDAcrylic(hWnd);
 
 	ShowWindow(hWnd, nCmdShow);
 	UpdateWindow(hWnd);
@@ -270,7 +322,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		HDC hdc = BeginPaint(hWnd, &ps);
 
 		// 重要：填充半透明黑色，让 Acrylic 背景可见
-		HBRUSH hBrush = CreateSolidBrush(RGB(32, 32, 32));
+		HBRUSH hBrush = CreateSolidBrush(RGB(0, 0, 0));
 		FillRect(hdc, &ps.rcPaint, hBrush);
 		DeleteObject(hBrush);
 
@@ -291,24 +343,25 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	{
 		if (g_handler && g_handler->GetBrowser())
 		{
-			if (!g_bOsrMode)
-			{
-				HWND hBrowserWnd = g_handler->GetBrowser()->GetHost()->GetWindowHandle();
-				if (hBrowserWnd)
-				{
-					RECT rc;
-					GetClientRect(hWnd, &rc);
-					SetWindowPos(hBrowserWnd, nullptr, 0, 0, rc.right, rc.bottom,
-						SWP_NOZORDER | SWP_SHOWWINDOW);
-				}
-			}
-			else
+			if (g_bOsrMode)
 			{
 				g_handler->SetBrowserSize(g_handler->GetBrowser()->GetIdentifier(), LOWORD(lParam), HIWORD(lParam));
 				CefRefPtr<CefBrowserHost> host = g_handler->GetBrowser()->GetHost();
 				if (host)
 				{
 					host->WasResized();
+				}
+			}
+			else
+			{
+				HWND hBrowserWnd = g_handler->GetBrowser()->GetHost()->GetWindowHandle();
+				if (hBrowserWnd)
+				{
+					CRect rc;
+					GetClientRect(hWnd, &rc);
+					rc.DeflateRect(50, 50, 50, 50);
+					SetWindowPos(hBrowserWnd, nullptr, rc.left, rc.top, rc.Width(), rc.Height(),
+						SWP_NOZORDER | SWP_SHOWWINDOW);
 				}
 			}
 		}

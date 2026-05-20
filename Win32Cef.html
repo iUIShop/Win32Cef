@@ -6,14 +6,22 @@
     <style>
         /* 核心：将根元素和body的背景设为完全透明 */
         html, body {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            background-color: transparent !important; /* 强制透明，覆盖浏览器默认白色 */
-            overflow: hidden; /* 防止出现滚动条破坏视觉效果 */
+            margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        background-color: transparent !important;
+        background: transparent !important;
+        overflow: hidden !important;
         }
 
+/* 穿透所有层级，包括伪元素、Canvas、iframe 等富媒体元素 */
+    *, *::before, *::after, canvas, iframe, video, img, svg, path, rect {
+        background: transparent !important;
+        background-color: transparent !important;
+        box-shadow: none !important;
+    }
+	
         /* 文字样式（可根据你的UI需求随意调整） */
         .content {
             font-family: "Microsoft YaHei", sans-serif;

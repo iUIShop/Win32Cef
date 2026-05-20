@@ -143,6 +143,12 @@ void SimpleHandler::OnLoadError(CefRefPtr<CefBrowser> browser,
 	frame->LoadURL(GetDataURI(ss.str(), "text/html"));
 }
 
+void SimpleHandler::OnLoadEnd(CefRefPtr<CefBrowser> browser,
+	CefRefPtr<CefFrame> frame,
+	int httpStatusCode)
+{
+}
+
 void SimpleHandler::ShowMainWindow() {
 	if (!CefCurrentlyOn(TID_UI)) {
 		// Execute on the UI thread.
