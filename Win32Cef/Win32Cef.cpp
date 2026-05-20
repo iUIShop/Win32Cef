@@ -167,12 +167,12 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	CefBrowserSettings browser_settings;
 
 	// Copilot说，browser_settings.background_color对窗口模式基本无效，主要用于OSR模式。
-	CefRefPtr<CefBrowser> pBrowser = CefBrowserHost::CreateBrowserSync(window_info, g_handler.get(), szPath, browser_settings, nullptr, nullptr);
-
+	CefBrowserHost::CreateBrowserSync(window_info, g_handler.get(), szPath, browser_settings, nullptr, nullptr);
 	if (!g_bOsrMode)
 	{
-		HWND hChrome_WidgetWin_1 = pBrowser->GetHost()->GetWindowHandle();
+		HWND hChrome_WidgetWin_1 = g_handler->GetBrowser()->GetHost()->GetWindowHandle();
 		_ASSERT(nullptr != hChrome_WidgetWin_1);
+		SetWindowSubclass(hChrome_WidgetWin_1, Chrome_WidgetWin_1Subclass, 5, 6);
 	}
 
 	// 消息循环
